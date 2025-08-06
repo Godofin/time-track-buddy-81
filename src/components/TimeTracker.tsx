@@ -6,19 +6,21 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Clock, DollarSign, User, FolderOpen } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TimeEntry {
-  id: string;
-  projectName: string;
-  projectType: string;
-  otherProjectName?: string;
+  id?: string;
+  project_name: string;
+  project_type: string;
+  other_project_name?: string;
   user: string;
-  hourlyRate: number;
-  startTime: string;
-  endTime: string;
-  totalHours: number;
-  totalValue: number;
+  hourly_rate: number;
+  start_time: string;
+  end_time: string;
+  total_hours: number;
+  total_value: number;
   timestamp: string;
+  user_id: string;
 }
 
 const PROJECT_TYPES = [
@@ -45,8 +47,40 @@ export const TimeTracker = () => {
   const [endTime, setEndTime] = useState('');
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [userId, setUserId] = useState('');
   
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Gerar ou recuperar um ID de usuário único
+    let storedUserId = localStorage.getItem('timeTrackerUserId');
+    if (!storedUserId) {
+      storedUserId = crypto.randomUUID();
+      localStorage.setItem('timeTrackerUserId', storedUserId);
+    }
+    setUserId(storedUserId);
+    loadEntries(storedUserId);
+  }, []);
+
+  const loadEntries = async (currentUserId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('timesheets')
+        .select('*')
+        .eq('user_id', currentUserId)
+        .order('timestamp', { ascending: false });
+
+      if (error) throw error;
+      setEntries(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar apontamentos:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar apontamentos anteriores.",
+        variant: "destructive"
+      });
+    }
+  };
 
   const calculateHoursAndValue = () => {
     if (!startTime || !endTime) return { hours: '00:00', value: 'R$ 0,00' };
@@ -116,8 +150,7 @@ export const TimeTracker = () => {
 
     setIsLoading(true);
 
-    // Simular salvamento no banco
-    setTimeout(() => {
+    try {
       const [startHour, startMinute] = startTime.split(':').map(Number);
       const [endHour, endMinute] = endTime.split(':').map(Number);
 
@@ -140,21 +173,28 @@ export const TimeTracker = () => {
 
       const totalValue = totalHours * hourlyRate;
 
-      const newEntry: TimeEntry = {
-        id: crypto.randomUUID(),
-        projectName,
-        projectType,
-        otherProjectName: projectType === 'Outros' ? otherProjectName : '',
+      const newEntry = {
+        project_name: projectName,
+        project_type: projectType,
+        other_project_name: projectType === 'Outros' ? otherProjectName : '',
         user: user === 'lavezzo' ? 'Lavezzo' : 'Outro',
-        hourlyRate,
-        startTime,
-        endTime,
-        totalHours,
-        totalValue,
-        timestamp: new Date().toISOString()
+        hourly_rate: hourlyRate,
+        start_time: startTime,
+        end_time: endTime,
+        total_hours: totalHours,
+        total_value: totalValue,
+        timestamp: new Date().toISOString(),
+        user_id: userId
       };
 
-      setEntries(prev => [newEntry, ...prev]);
+      const { error } = await supabase
+        .from('timesheets')
+        .insert([newEntry]);
+
+      if (error) throw error;
+
+      // Recarregar entradas
+      await loadEntries(userId);
       
       // Reset form
       setProjectName('');
@@ -165,13 +205,20 @@ export const TimeTracker = () => {
       setStartTime('');
       setEndTime('');
       
-      setIsLoading(false);
-      
       toast({
         title: "Sucesso!",
         description: "Apontamento de horas salvo com sucesso."
       });
-    }, 1000);
+    } catch (error) {
+      console.error('Erro ao salvar apontamento:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao salvar o apontamento. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const formatEntryHours = (totalHours: number) => {
@@ -339,28 +386,28 @@ export const TimeTracker = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {entries.map(entry => (
-                  <Card key={entry.id} className="bg-gradient-card border-l-4 border-l-primary">
+                {entries.map((entry, index) => (
+                  <Card key={entry.id || index} className="bg-gradient-card border-l-4 border-l-primary">
                     <CardContent className="pt-4">
                       <div className="flex flex-col md:flex-row justify-between gap-4">
                         <div className="space-y-1">
-                          <h3 className="font-semibold text-lg">{entry.projectName}</h3>
+                          <h3 className="font-semibold text-lg">{entry.project_name}</h3>
                           <p className="text-sm text-muted-foreground">
-                            Tipo: {entry.projectType === 'Outros' ? `${entry.projectType} - ${entry.otherProjectName}` : entry.projectType}
+                            Tipo: {entry.project_type === 'Outros' ? `${entry.project_type} - ${entry.other_project_name}` : entry.project_type}
                           </p>
                           <p className="text-sm text-muted-foreground flex items-center gap-1">
                             <User className="h-3 w-3" />
-                            {entry.user} - R$ {entry.hourlyRate.toFixed(2).replace('.', ',')}/h
+                            {entry.user} - R$ {entry.hourly_rate.toFixed(2).replace('.', ',')}/h
                           </p>
                         </div>
                         <div className="text-right space-y-1">
                           <p className="text-sm font-medium flex items-center justify-end gap-1">
                             <Clock className="h-3 w-3" />
-                            {formatEntryHours(entry.totalHours)}
+                            {formatEntryHours(entry.total_hours)}
                           </p>
                           <p className="text-lg font-bold text-primary flex items-center justify-end gap-1">
                             <DollarSign className="h-4 w-4" />
-                            R$ {entry.totalValue.toFixed(2).replace('.', ',')}
+                            R$ {entry.total_value.toFixed(2).replace('.', ',')}
                           </p>
                         </div>
                       </div>
