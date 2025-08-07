@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { FolderOpen, Filter, User, Clock, DollarSign } from 'lucide-react';
+import { FolderOpen, Filter, User, Clock, DollarSign, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
 
@@ -101,6 +101,40 @@ const EntriesPage = () => {
     const hours = Math.floor(totalHours);
     const minutes = Math.round((totalHours - hours) * 60);
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  };
+
+  const handleDeleteEntry = async (entryId: string | undefined) => {
+    if (!entryId) return;
+    
+    if (!confirm('Tem certeza que deseja excluir este apontamento? Esta ação não pode ser desfeita.')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('timesheets')
+        .delete()
+        .eq('id', entryId);
+
+      if (error) throw error;
+
+      // Atualizar a lista removendo o item deletado
+      const updatedEntries = entries.filter(entry => entry.id !== entryId);
+      setEntries(updatedEntries);
+      setFilteredEntries(filteredEntries.filter(entry => entry.id !== entryId));
+
+      toast({
+        title: "Sucesso!",
+        description: "Apontamento excluído com sucesso."
+      });
+    } catch (error) {
+      console.error('Erro ao excluir apontamento:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao excluir o apontamento. Tente novamente.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -213,32 +247,42 @@ const EntriesPage = () => {
             ) : filteredEntries.length > 0 ? (
               <div className="space-y-4">
                 {filteredEntries.map((entry) => (
-                  <Card key={entry.id} className="bg-gradient-card border-l-4 border-l-primary">
-                    <CardContent className="pt-4">
-                      <div className="flex flex-col md:flex-row justify-between gap-4">
-                        <div className="space-y-1">
-                          <h3 className="font-semibold text-lg">{entry.project_name}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            Tipo: {entry.project_type === 'Outros' ? `${entry.project_type} - ${entry.other_project_name}` : entry.project_type}
-                          </p>
-                          <p className="text-sm text-muted-foreground flex items-center gap-1">
-                            <User className="h-3 w-3" />
-                            {entry.user} - R$ {entry.hourly_rate.toFixed(2).replace('.', ',')}/h
-                          </p>
-                        </div>
-                        <div className="text-right space-y-1">
-                          <p className="text-sm font-medium flex items-center justify-end gap-1">
-                            <Clock className="h-3 w-3" />
-                            {formatEntryHours(entry.total_hours)}
-                          </p>
-                          <p className="text-lg font-bold text-primary flex items-center justify-end gap-1">
-                            <DollarSign className="h-4 w-4" />
-                            R$ {entry.total_value.toFixed(2).replace('.', ',')}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                   <Card key={entry.id} className="bg-gradient-card border-l-4 border-l-primary">
+                     <CardContent className="pt-4">
+                       <div className="flex flex-col md:flex-row justify-between gap-4">
+                         <div className="space-y-1 flex-1">
+                           <h3 className="font-semibold text-lg">{entry.project_name}</h3>
+                           <p className="text-sm text-muted-foreground">
+                             Tipo: {entry.project_type === 'Outros' ? `${entry.project_type} - ${entry.other_project_name}` : entry.project_type}
+                           </p>
+                           <p className="text-sm text-muted-foreground flex items-center gap-1">
+                             <User className="h-3 w-3" />
+                             {entry.user} - R$ {entry.hourly_rate.toFixed(2).replace('.', ',')}/h
+                           </p>
+                         </div>
+                         <div className="flex flex-col md:flex-row items-end gap-4">
+                           <div className="text-right space-y-1">
+                             <p className="text-sm font-medium flex items-center justify-end gap-1">
+                               <Clock className="h-3 w-3" />
+                               {formatEntryHours(entry.total_hours)}
+                             </p>
+                             <p className="text-lg font-bold text-primary flex items-center justify-end gap-1">
+                               <DollarSign className="h-4 w-4" />
+                               R$ {entry.total_value.toFixed(2).replace('.', ',')}
+                             </p>
+                           </div>
+                           <Button
+                             variant="outline"
+                             size="sm"
+                             onClick={() => handleDeleteEntry(entry.id)}
+                             className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                           >
+                             <Trash2 className="h-4 w-4" />
+                           </Button>
+                         </div>
+                       </div>
+                     </CardContent>
+                   </Card>
                 ))}
               </div>
             ) : (
