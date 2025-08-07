@@ -34,8 +34,8 @@ const PROJECT_TYPES = [
 const EntriesPage = () => {
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [filteredEntries, setFilteredEntries] = useState<TimeEntry[]>([]);
-  const [filterProjectType, setFilterProjectType] = useState('');
-  const [filterUser, setFilterUser] = useState('');
+  const [filterProjectType, setFilterProjectType] = useState('all');
+  const [filterUser, setFilterUser] = useState('all');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -72,11 +72,11 @@ const EntriesPage = () => {
   useEffect(() => {
     let tempEntries = [...entries];
 
-    if (filterProjectType) {
+    if (filterProjectType && filterProjectType !== 'all') {
       tempEntries = tempEntries.filter(entry => entry.project_type === filterProjectType);
     }
 
-    if (filterUser) {
+    if (filterUser && filterUser !== 'all') {
       tempEntries = tempEntries.filter(entry => entry.user === filterUser);
     }
 
@@ -140,7 +140,7 @@ const EntriesPage = () => {
                     <SelectValue placeholder="Todos os tipos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos os tipos</SelectItem>
+                    <SelectItem value="all">Todos os tipos</SelectItem>
                     {PROJECT_TYPES.map(type => (
                       <SelectItem key={type} value={type}>
                         {type}
@@ -156,7 +156,7 @@ const EntriesPage = () => {
                     <SelectValue placeholder="Todos os usuários" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos os usuários</SelectItem>
+                    <SelectItem value="all">Todos os usuários</SelectItem>
                     <SelectItem value="Lavezzo">Lavezzo</SelectItem>
                     <SelectItem value="Outro">Outro</SelectItem>
                   </SelectContent>
@@ -187,8 +187,8 @@ const EntriesPage = () => {
               <Button 
                 variant="outline" 
                 onClick={() => {
-                  setFilterProjectType('');
-                  setFilterUser('');
+                  setFilterProjectType('all');
+                  setFilterUser('all');
                   setFilterDateFrom('');
                   setFilterDateTo('');
                 }}
