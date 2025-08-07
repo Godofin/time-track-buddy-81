@@ -39,16 +39,11 @@ const EntriesPage = () => {
   useEffect(() => {
     const fetchEntries = async () => {
       setIsLoading(true);
-      try {
-        const userId = localStorage.getItem('timeTrackerUserId');
-        if (!userId) {
-          throw new Error("User ID not found.");
-        }
 
+      try {
         const { data, error } = await supabase
           .from('timesheets')
           .select('*')
-          .eq('user_id', userId)
           .order('timestamp', { ascending: false });
 
         if (error) throw error;
@@ -58,7 +53,7 @@ const EntriesPage = () => {
         console.error('Erro ao carregar apontamentos:', error);
         toast({
           title: "Erro",
-          description: "Erro ao carregar apontamentos anteriores.",
+          description: "Erro ao carregar todos os apontamentos.",
           variant: "destructive"
         });
       } finally {
@@ -95,10 +90,10 @@ const EntriesPage = () => {
         {/* Header */}
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-            Histórico de Apontamentos
+            Todos os Apontamentos
           </h1>
           <p className="text-muted-foreground">
-            Visualize e filtre todos os seus apontamentos de horas.
+            Visualize e filtre todos os apontamentos de horas.
           </p>
         </div>
         
@@ -157,7 +152,7 @@ const EntriesPage = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FolderOpen className="h-5 w-5 text-primary" />
-              Apontamentos Anteriores
+              Apontamentos
             </CardTitle>
           </CardHeader>
           <CardContent>
