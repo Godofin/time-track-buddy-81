@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
 
 interface TimeEntry {
-  id: string;
+  id?: string;
   project_name: string;
   project_type: string;
   other_project_name?: string;
@@ -19,6 +19,9 @@ interface TimeEntry {
   total_hours: number;
   total_value: number;
   timestamp: string;
+  start_time: string;
+  end_time: string;
+  user_id: string;
 }
 
 const PROJECT_TYPES = [
@@ -33,6 +36,8 @@ const EntriesPage = () => {
   const [filteredEntries, setFilteredEntries] = useState<TimeEntry[]>([]);
   const [filterProjectType, setFilterProjectType] = useState('');
   const [filterUser, setFilterUser] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -75,8 +80,22 @@ const EntriesPage = () => {
       tempEntries = tempEntries.filter(entry => entry.user === filterUser);
     }
 
+    if (filterDateFrom) {
+      tempEntries = tempEntries.filter(entry => {
+        const entryDate = new Date(entry.timestamp).toISOString().split('T')[0];
+        return entryDate >= filterDateFrom;
+      });
+    }
+
+    if (filterDateTo) {
+      tempEntries = tempEntries.filter(entry => {
+        const entryDate = new Date(entry.timestamp).toISOString().split('T')[0];
+        return entryDate <= filterDateTo;
+      });
+    }
+
     setFilteredEntries(tempEntries);
-  }, [entries, filterProjectType, filterUser]);
+  }, [entries, filterProjectType, filterUser, filterDateFrom, filterDateTo]);
 
   const formatEntryHours = (totalHours: number) => {
     const hours = Math.floor(totalHours);
@@ -113,7 +132,7 @@ const EntriesPage = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="filterProjectType">Tipo de Projeto</Label>
                 <Select value={filterProjectType} onValueChange={setFilterProjectType}>
@@ -143,6 +162,39 @@ const EntriesPage = () => {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="filterDateFrom">Data Inicial</Label>
+                <Input
+                  id="filterDateFrom"
+                  type="date"
+                  value={filterDateFrom}
+                  onChange={(e) => setFilterDateFrom(e.target.value)}
+                  placeholder="Data inicial"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="filterDateTo">Data Final</Label>
+                <Input
+                  id="filterDateTo"
+                  type="date"
+                  value={filterDateTo}
+                  onChange={(e) => setFilterDateTo(e.target.value)}
+                  placeholder="Data final"
+                />
+              </div>
+            </div>
+            <div className="mt-4 flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setFilterProjectType('');
+                  setFilterUser('');
+                  setFilterDateFrom('');
+                  setFilterDateTo('');
+                }}
+              >
+                Limpar Filtros
+              </Button>
             </div>
           </CardContent>
         </Card>
