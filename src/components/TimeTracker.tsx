@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Clock, DollarSign, User, FolderOpen } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { Link } from 'react-router-dom';
 
 interface TimeEntry {
   id?: string;
@@ -238,6 +239,13 @@ export const TimeTracker = () => {
           <p className="text-muted-foreground">
             Registre suas horas de trabalho em projetos
           </p>
+        </div>
+        
+        {/* Navigation Button */}
+        <div className="text-center">
+            <Link to="/entries">
+                <Button variant="outline">Ver Apontamentos</Button>
+            </Link>
         </div>
 
         {/* Form Card */}
